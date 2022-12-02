@@ -9,7 +9,7 @@ defmodule PartOne do
             CY: 2, # Scissors, Paper
             CZ: 6  # Scissors, Scissors
 end
-
+#------------------------------------------------
 defmodule PartTwo do
   defstruct AX: 3, # Lose against Rock
             AY: 4, # Draw against Rock
@@ -21,7 +21,7 @@ defmodule PartTwo do
             CY: 6, # Draw against Scissors
             CZ: 7  # Win against Scissors
 end
-
+#------------------------------------------------
 defmodule DayTwo do
   def total_score(file_path, %PartOne{} = score_map), do: get_total(file_path, score_map)
   def total_score(file_path, %PartTwo{} = score_map), do: get_total(file_path, score_map)
@@ -32,5 +32,4 @@ defmodule DayTwo do
     |> Enum.map(fn x -> String.split(x) |> Enum.join() |> String.to_atom() end)
     |> Enum.reduce(0, fn x, acc -> Map.get(score_map, x) + acc end)
   end
-  
 end
