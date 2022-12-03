@@ -3,15 +3,17 @@ defmodule DayThree do
   def part_one(file_path) do
     File.read!(file_path)
     |> String.split("\n", trim: true)
-    |> Enum.map(&split_sack/1)
+    |> Stream.map(&split_sack/1)
+    |> Stream.map(&find_overlap/1)
     |> Enum.sum()
   end
 
-  def split_sack(sack) do
-    {first, second} =
-      sack
-      |> String.split_at(div(String.length(sack), 2))
+  defp split_sack(sack) do
+    sack
+    |> String.split_at(div(String.length(sack), 2))
+  end
 
+  defp find_overlap({first, second}) do
     letter =
       for n <- first |> String.graphemes(),
           String.contains?(second, n),
@@ -39,6 +41,7 @@ defmodule DayThree do
     convert_item(badge)
   end
 
+  # Item Conversion Functions
   defp convert_item(letter) do
     hd(letter)
     |> String.to_charlist()
