@@ -1,5 +1,6 @@
 defmodule DayThree do
-  def rucksack(file_path) do
+  # Part One
+  def part_one(file_path) do
     File.read!(file_path)
     |> String.split("\n", trim: true)
     |> Enum.map(&split_sack/1)
@@ -16,13 +17,11 @@ defmodule DayThree do
           String.contains?(second, n),
           do: n
 
-    hd(letter)
-    |> String.to_charlist()
-    |> hd
-    |> to_priority()
+    convert_item(letter)
   end
 
-  def badges(file_path) do
+  # Part Two
+  def part_two(file_path) do
     File.read!(file_path)
     |> String.split("\n", trim: true)
     |> Enum.chunk_every(3)
