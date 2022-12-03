@@ -26,8 +26,8 @@ defmodule DayThree do
   def part_two(file_path) do
     File.read!(file_path)
     |> String.split("\n", trim: true)
-    |> Enum.chunk_every(3)
-    |> Enum.map(&get_badge/1)
+    |> Stream.chunk_every(3)
+    |> Stream.map(&get_badge/1)
     |> Enum.sum()
   end
 
