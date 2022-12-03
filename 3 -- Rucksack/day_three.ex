@@ -13,13 +13,13 @@ defmodule DayThree do
     |> String.split_at(div(String.length(sack), 2))
   end
 
-  defp find_overlap({first, second}) do
+  def find_overlap({first, second}) do
     letter =
       for n <- first |> String.graphemes(),
           String.contains?(second, n),
-          do: n
+          do: :binary.decode_unsigned(n)
 
-    convert_item(letter)
+    hd(letter) |> to_priority()
   end
 
   # Part Two
@@ -36,19 +36,11 @@ defmodule DayThree do
       for n <- group |> hd() |> String.graphemes(),
           String.contains?(Enum.fetch!(group, 1), n),
           String.contains?(Enum.fetch!(group, 2), n),
-          do: n
+          do: :binary.decode_unsigned(n)
 
-    convert_item(badge)
+    hd(badge) |> to_priority()
   end
 
-  # Item Conversion Functions
-  defp convert_item(letter) do
-    hd(letter)
-    |> String.to_charlist()
-    |> hd
-    |> to_priority()
-  end
-
-  defp to_priority(num) when num > 96, do: num - 96
-  defp to_priority(num), do: num - 38
+  defp to_priority(num) when num < ?a, do: num - ?A + 27
+  defp to_priority(num), do: num - ?a + 1
 end
