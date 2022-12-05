@@ -12,24 +12,24 @@ defmodule DayFive do
     crates = parse_stacks(stacks)
     move_list = parse_moves(moves)
 
-    IO.puts("Cratemaster 9000:")
+    part_one =
+      do_moves(crates, move_list)
+      |> Enum.map(fn {_id, crates} -> hd(crates) end)
+      |> Enum.join()
 
-    do_moves(crates, move_list)
-    |> Enum.map(fn {_id, crates} -> hd(crates) end)
-    |> Enum.join()
-    |> IO.inspect()
+    part_two =
+      do_moves(crates, move_list, big: true)
+      |> Enum.map(fn {_id, crates} -> hd(crates) end)
+      |> Enum.join()
 
-    IO.puts("Cratemaster 9001:")
-
-    do_moves(crates, move_list, big: true)
-    |> Enum.map(fn {_id, crates} -> hd(crates) end)
-    |> Enum.join()
+    IO.puts(~c"""
+    Cratemaster 9000: #{part_one}
+    Cratemaster 9001: #{part_two}
+    """)
   end
 
   def do_moves(crates, moves, opts \\ [])
-
   def do_moves(crates, [], _opts), do: crates
-
   def do_moves(crates, [[amount, from, to] | rest], opts) do
     crates
     |> move(amount, from, to, opts)
@@ -47,14 +47,12 @@ defmodule DayFive do
   end
 
   def parse_rows([], dict), do: dict
-
   def parse_rows([row | rest], dict) do
     dict = parse_row(row, dict)
     parse_rows(rest, dict)
   end
 
   def parse_row([], dict), do: dict
-
   def parse_row([{value, key} | tail], dict) do
     parse_row(tail, push(dict, key, value))
   end
@@ -74,7 +72,6 @@ defmodule DayFive do
   # Movement Functions
   def move(dict, amount, from, to, opts \\ [])
   def move(dict, 0, _from, _to, _opts), do: dict
-
   def move(dict, amount, from, to, big: true) do
     {crate, dict} = pop(dict, from, amount)
     push(dict, to, crate)
@@ -92,7 +89,6 @@ defmodule DayFive do
 
   # Map Helpers
   def push(dict, _key, " "), do: dict
-
   def push(dict, key, value) when is_list(value) do
     Map.update(dict, key, value, fn x -> value ++ x end)
   end
