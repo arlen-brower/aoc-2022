@@ -7,7 +7,7 @@ defmodule DaySix do
     len =
       chunk
       |> String.graphemes()
-      |> Enum.uniq()
+      |> Stream.uniq()
       |> Enum.count()
 
     case len do
