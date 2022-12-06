@@ -1,6 +1,6 @@
 defmodule DaySix do
-  @packet ~r/..../
-  @message ~r/............../
+  @packet ~r/.{4}/
+  @message ~r/.{14}/
   @len 14
 
   def scan_signal(signal, counter \\ @len) do
