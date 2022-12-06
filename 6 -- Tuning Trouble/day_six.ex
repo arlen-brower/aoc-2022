@@ -1,21 +1,22 @@
 defmodule DaySix do
-  @packet ~r/.{4}/
-  @message ~r/.{14}/
-  @len 14
+  def scan_signal(signal, signal_length), do: scan_signal(signal, signal_length, signal_length)
 
-  def scan_signal(signal, counter \\ @len) do
+  def scan_signal(signal, signal_length, counter) do
+    <<chunk::binary-size(signal_length), _rest::binary>> = signal
+
     len =
-      Regex.run(@message, signal)
-      |> hd()
+      chunk
       |> String.graphemes()
-      |> MapSet.new()
-      |> MapSet.size()
+      |> Enum.uniq()
+      |> Enum.count()
 
-    if len == @len do
-      {counter, signal}
-    else
-      <<_, rest::binary>> = signal
-      scan_signal(rest, counter + 1)
+    case len do
+      ^signal_length ->
+        {counter, signal}
+
+      _ ->
+        <<_, rest::binary>> = signal
+        scan_signal(rest, signal_length, counter + 1)
     end
   end
 end
