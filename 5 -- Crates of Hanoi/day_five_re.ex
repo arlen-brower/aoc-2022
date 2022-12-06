@@ -26,7 +26,7 @@ defmodule DayFiveRe do
     |> Enum.reject(fn {cargo, _stack} -> cargo == " " end)
     |> Enum.each(fn {cargo, stack} -> StackServer.add_one(cargo, stack_ids[stack]) end)
 
-    move_list = parse_moves(moves, stack_ids)
+    execute_moves(moves, stack_ids)
 
     top_crates = for stack <- 1..num_stacks, do: StackServer.get_one(stack_ids[stack])
     top_crates |> Enum.join()
@@ -41,7 +41,7 @@ defmodule DayFiveRe do
   end
 
   # Moves parsing
-  def parse_moves(moves, stack_ids) do
+  def execute_moves(moves, stack_ids) do
     moves
     |> String.split("\n")
     |> Enum.map(&parse_move/1)
