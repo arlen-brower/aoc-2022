@@ -9,22 +9,17 @@ defmodule StackServer do
     new_stack =
       receive do
         {:push_one, value} ->
-          [value | stack] |> IO.inspect()
+          [value | stack]
 
         {:pop_one, caller} ->
           unless Enum.empty?(stack) do
             [top_crate | rest] = stack
             send(caller, {:response, top_crate})
-            IO.inspect(rest)
             rest
           else
             send(caller, {:response, :empty})
             stack
           end
-
-        {:inspect, caller} ->
-          send(caller, {:response, stack})
-          stack
       end
 
     loop(new_stack)
