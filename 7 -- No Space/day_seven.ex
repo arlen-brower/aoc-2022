@@ -6,35 +6,23 @@ defmodule DaySeven do
       File.read!(input_path)
       |> String.split("\n", trim: true)
 
-    IO.inspect(lines)
-    parser(lines, 0, [])
+    parser(lines, 0, 0)
   end
 
-  def parser([], file_system, _cwd), do: file_system
+  def parser([], total, target_total), do: {[], total, target_total}
+  def parser(["$ cd .." | rest], total, target_total), do: {rest, total, target_total}
 
-  def parser([current | rest], file_system, cwd) do
-    IO.puts(current)
+  def parser([cd | rest], total, target_total) do
+    {unparsed, dir_size} =
+      tl(rest)
+      |> list_dir([], 0)
 
-    case current do
-      "$ cd .." ->
-        [cur_dir | parent_dirs] = cwd
-        IO.puts("\tChanging directory to " <> hd(parent_dirs))
-        parser(rest, file_system, parent_dirs)
+    {next_lines, new_total, new_target_total} = parser(unparsed, dir_size, target_total)
 
-      "$ cd" <> args ->
-        IO.puts("\tChanging directory to " <> args)
-        parser(rest, file_system, [args | cwd])
-
-      "$ ls" <> _args ->
-        IO.puts("\tDirectory " <> to_string(cwd) <> " contains:")
-        {unparsed, dir_size} = list_dir(rest, [], 0)
-        IO.puts("\t\t TOTAL: #{dir_size}")
-
-        if dir_size <= @threshold_size do
-          parser(unparsed, file_system + dir_size, cwd)
-        else
-          parser(unparsed, file_system, cwd)
-        end
+    if new_total <= @threshold_size do
+      parser(next_lines, new_total + total, new_target_total + new_total)
+    else
+      parser(next_lines, new_total + total, new_target_total)
     end
   end
 
@@ -51,7 +39,6 @@ defmodule DaySeven do
           0
       end
 
-    IO.puts("\t\t" <> current)
     list_dir(rest, [current | files], file_size + dir_size)
   end
 end
