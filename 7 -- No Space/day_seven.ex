@@ -28,45 +28,50 @@ defmodule DaySeven do
   def parser(%{lines: ["$ cd .." | rest]} = go_up),
     do: %{go_up | lines: rest}
 
-  def parser(%{lines: ["$ cd " <> _dir | rest], total: total, target: target}) do
-    {unparsed, dir_size} =
-      tl(rest)
-      |> list_dir(0)
+  def parser(%{lines: ["$ cd " <> _dir | rest], total: total, target: target} = fs) do
+    %{fs | lines: rest, total: 0}
+    |> list_dir()
+    |> parser()
+    |> update_target()
+    |> update_total(total)
+    |> send_total()
+    |> parser()
+  end
 
-    updated = parser(%{lines: unparsed, total: dir_size, target: target})
+  # Map helper functions -------------------------------------
 
-    updated =
-      Map.update!(updated, :target, fn t ->
-        if updated.total <= @threshold_size do
-          t + updated.total
-        else
-          t
-        end
-      end)
+  def send_total(%{} = fs), do: send(self(), fs)
 
-    updated = %{updated | total: updated.total + total}
+  def update_total(%{} = fs, add), do: Map.update!(fs, :total, fn x -> x + add end)
 
-    send(self(), updated.total)
-    parser(updated)
+  def update_target(%{} = fs) do
+    Map.update!(fs, :target, fn t ->
+      if fs.total <= @threshold_size do
+        t + fs.total
+      else
+        t
+      end
+    end)
   end
 
   # Directory Size -----------------------------------------
+  def list_dir(%{lines: []} = fs), do: fs
+  def list_dir(%{lines: ["$ cd" <> _ | _]} = fs), do: fs
+  def list_dir(%{lines: ["$ ls" | rest]} = fs), do: list_dir(%{fs | lines: rest})
+  def list_dir(%{lines: ["dir " <> _ | rest]} = fs), do: list_dir(%{fs | lines: rest})
 
-  def list_dir([], dir_size), do: {[], dir_size}
-  def list_dir(["$" <> _ | _] = lines, dir_size), do: {lines, dir_size}
-  def list_dir(["dir " <> _ | rest], dir_size), do: list_dir(rest, dir_size)
-
-  def list_dir([current | rest], dir_size) do
+  def list_dir(%{lines: [current | rest], total: dir_size} = fs) do
     [file_size] = Regex.run(~r/(\d+) .*/, current, capture: :all_but_first)
 
-    list_dir(rest, String.to_integer(file_size) + dir_size)
+    %{fs | lines: rest, total: String.to_integer(file_size) + dir_size}
+    |> list_dir()
   end
 
   # Message loop --------------------------------------------
 
   def get_messages(messages \\ []) do
     receive do
-      x -> get_messages([x | messages])
+      x -> get_messages([x.total | messages])
     after
       0 -> messages
     end
