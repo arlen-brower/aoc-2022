@@ -36,13 +36,13 @@ defmodule DaySeven do
   def parser(%{lines: ["$ cd .." | rest]} = go_up),
     do: %{go_up | lines: rest}
 
-  def parser(%{lines: ["$ cd " <> _dir | rest], total: total} = fs) do
+  def parser(%{lines: ["$ cd " <> dir | rest], total: total} = fs) do
     %{fs | lines: rest, total: 0}
     |> list_dir()
     |> parser()
+    |> send_total()
     |> update_target()
     |> update_total(total)
-    |> send_total()
     |> parser()
   end
 
