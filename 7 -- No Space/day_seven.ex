@@ -46,6 +46,20 @@ defmodule DaySeven do
     |> parser()
   end
 
+  # Directory Size -----------------------------------------
+  @spec list_dir(filesystem()) :: filesystem()
+  def list_dir(%{lines: []} = fs), do: fs
+  def list_dir(%{lines: ["$ cd" <> _ | _]} = fs), do: fs
+  def list_dir(%{lines: ["$ ls" | rest]} = fs), do: list_dir(%{fs | lines: rest})
+  def list_dir(%{lines: ["dir " <> _ | rest]} = fs), do: list_dir(%{fs | lines: rest})
+
+  def list_dir(%{lines: [current | rest], total: dir_size} = fs) do
+    [file_size] = Regex.run(~r/(\d+) .*/, current, capture: :all_but_first)
+
+    %{fs | lines: rest, total: String.to_integer(file_size) + dir_size}
+    |> list_dir()
+  end
+
   # Map helper functions -------------------------------------
 
   @spec send_total(filesystem()) :: filesystem()
@@ -63,20 +77,6 @@ defmodule DaySeven do
         t
       end
     end)
-  end
-
-  # Directory Size -----------------------------------------
-  @spec list_dir(filesystem()) :: filesystem()
-  def list_dir(%{lines: []} = fs), do: fs
-  def list_dir(%{lines: ["$ cd" <> _ | _]} = fs), do: fs
-  def list_dir(%{lines: ["$ ls" | rest]} = fs), do: list_dir(%{fs | lines: rest})
-  def list_dir(%{lines: ["dir " <> _ | rest]} = fs), do: list_dir(%{fs | lines: rest})
-
-  def list_dir(%{lines: [current | rest], total: dir_size} = fs) do
-    [file_size] = Regex.run(~r/(\d+) .*/, current, capture: :all_but_first)
-
-    %{fs | lines: rest, total: String.to_integer(file_size) + dir_size}
-    |> list_dir()
   end
 
   # Message loop --------------------------------------------
