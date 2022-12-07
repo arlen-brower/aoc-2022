@@ -2,7 +2,6 @@ defmodule DaySeven do
   @threshold_size 100_000
   @capacity 70_000_000
   @required 30_000_000
-  @min 5_174_025
 
   def run(input_path \\ "test_input") do
     File.read!(input_path)
@@ -12,28 +11,50 @@ defmodule DaySeven do
 
   def do_parse(lines) do
     {[], total, target} = parser(lines, 0, 0)
-    [total: total, target: target]
+    target_size = @required - (@capacity - total)
+    parser(lines, 0, 0, target_size)
+
+    part_two =
+      get_messages()
+      |> Enum.min()
+
+    [part_one: target, part_two: part_two]
   end
 
-  def parser([], total, target_total), do: {[], total, target_total}
-  def parser(["$ cd .." | rest], total, target_total), do: {rest, total, target_total}
+  def get_messages(messages \\ []) do
+    receive do
+      x -> get_messages([x | messages])
+    after
+      0 -> messages
+    end
+  end
 
-  def parser([cd | rest], total, target_total) do
+  def parser(lines, total, target_total, delete_size \\ nil)
+  def parser([], total, target_total, _delete_size), do: {[], total, target_total}
+
+  def parser(["$ cd .." | rest], total, target_total, _delete_size),
+    do: {rest, total, target_total}
+
+  def parser(["$ cd " <> _dir | rest], total, target_total, delete_size) do
     {unparsed, dir_size} =
       tl(rest)
       |> list_dir(0)
 
-    {next_lines, new_total, new_target_total} = parser(unparsed, dir_size, target_total)
+    {next_lines, new_total, new_target_total} =
+      parser(unparsed, dir_size, target_total, delete_size)
 
-    if new_total >= @min do
-      IO.puts(new_total)
+    if delete_size != nil and new_total >= delete_size do
+      send(self(), new_total)
     end
 
-    if new_total <= @threshold_size do
-      parser(next_lines, new_total + total, new_target_total + new_total)
-    else
-      parser(next_lines, new_total + total, new_target_total)
-    end
+    new_target_total =
+      if new_total <= @threshold_size do
+        new_target_total + new_total
+      else
+        new_target_total
+      end
+
+    parser(next_lines, new_total + total, new_target_total, delete_size)
   end
 
   def list_dir([], dir_size), do: {[], dir_size}
