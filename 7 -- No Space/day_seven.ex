@@ -1,25 +1,68 @@
 defmodule DaySeven do
+  defstruct lines: [], total: 0, target: 0
+
   @threshold_size 100_000
   @capacity 70_000_000
   @required 30_000_000
 
   def run(input_path \\ "test_input") do
-    File.read!(input_path)
-    |> String.split("\n", trim: true)
-    |> do_parse()
-  end
+    input =
+      File.read!(input_path)
+      |> String.split("\n", trim: true)
 
-  def do_parse(lines) do
-    {[], total, target} = parser(lines, 0, 0)
-    target_size = @required - (@capacity - total)
-    parser(lines, 0, 0, target_size)
+    results = parser(%__MODULE__{lines: input})
+    target_size = @required - (@capacity - results.total)
 
     part_two =
       get_messages()
+      |> Enum.filter(fn x -> x >= target_size end)
       |> Enum.min()
 
-    [part_one: target, part_two: part_two]
+    [part_one: results.target, part_two: part_two]
   end
+
+  # Recursive parsing function-------------------------------
+
+  def parser(%{lines: []} = results), do: results
+
+  def parser(%{lines: ["$ cd .." | rest]} = go_up),
+    do: %{go_up | lines: rest}
+
+  def parser(%{lines: ["$ cd " <> _dir | rest], total: total, target: target}) do
+    {unparsed, dir_size} =
+      tl(rest)
+      |> list_dir(0)
+
+    updated = parser(%{lines: unparsed, total: dir_size, target: target})
+
+    updated =
+      Map.update!(updated, :target, fn t ->
+        if updated.total <= @threshold_size do
+          t + updated.total
+        else
+          t
+        end
+      end)
+
+    updated = %{updated | total: updated.total + total}
+
+    send(self(), updated.total)
+    parser(updated)
+  end
+
+  # Directory Size -----------------------------------------
+
+  def list_dir([], dir_size), do: {[], dir_size}
+  def list_dir(["$" <> _ | _] = lines, dir_size), do: {lines, dir_size}
+  def list_dir(["dir " <> _ | rest], dir_size), do: list_dir(rest, dir_size)
+
+  def list_dir([current | rest], dir_size) do
+    [file_size] = Regex.run(~r/(\d+) .*/, current, capture: :all_but_first)
+
+    list_dir(rest, String.to_integer(file_size) + dir_size)
+  end
+
+  # Message loop --------------------------------------------
 
   def get_messages(messages \\ []) do
     receive do
@@ -27,49 +70,5 @@ defmodule DaySeven do
     after
       0 -> messages
     end
-  end
-
-  def parser(lines, total, target_total, delete_size \\ nil)
-  def parser([], total, target_total, _delete_size), do: {[], total, target_total}
-
-  def parser(["$ cd .." | rest], total, target_total, _delete_size),
-    do: {rest, total, target_total}
-
-  def parser(["$ cd " <> _dir | rest], total, target_total, delete_size) do
-    {unparsed, dir_size} =
-      tl(rest)
-      |> list_dir(0)
-
-    {next_lines, new_total, new_target_total} =
-      parser(unparsed, dir_size, target_total, delete_size)
-
-    if delete_size != nil and new_total >= delete_size do
-      send(self(), new_total)
-    end
-
-    new_target_total =
-      if new_total <= @threshold_size do
-        new_target_total + new_total
-      else
-        new_target_total
-      end
-
-    parser(next_lines, new_total + total, new_target_total, delete_size)
-  end
-
-  def list_dir([], dir_size), do: {[], dir_size}
-  def list_dir(["$" <> _ | _] = lines, dir_size), do: {lines, dir_size}
-
-  def list_dir([current | rest], dir_size) do
-    file_size =
-      case Regex.run(~r/(\d+) .*/, current, capture: :all_but_first) do
-        [x] ->
-          String.to_integer(x)
-
-        _ ->
-          0
-      end
-
-    list_dir(rest, file_size + dir_size)
   end
 end
