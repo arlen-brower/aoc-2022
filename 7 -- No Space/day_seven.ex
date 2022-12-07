@@ -65,7 +65,7 @@ defmodule DaySeven do
   @spec send_total(filesystem()) :: filesystem()
   def send_total(%{} = fs), do: send(self(), fs)
 
-  @spec update_total(filesystem()) :: filesystem()
+  @spec update_total(filesystem(), file_size()) :: filesystem()
   def update_total(%{} = fs, add), do: Map.update!(fs, :total, fn x -> x + add end)
 
   @spec update_target(filesystem()) :: filesystem()
