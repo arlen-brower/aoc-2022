@@ -24,6 +24,82 @@ defmodule DayEight do
     %{}
     |> rows(horizontal)
     |> cols(vertical)
+
+    load_map(file_path)
+    |> calc_scenic()
+  end
+
+  def read_lines([], _r, acc), do: acc
+
+  def read_lines([line | rest], r, acc) do
+    new_map = read_line(line, r, 0, acc)
+    read_lines(rest, r + 1, new_map)
+  end
+
+  def read_line([], _r, _c, acc), do: acc
+
+  def read_line([tree | forest], r, c, %{} = acc) do
+    read_line(forest, r, c + 1, Map.put(acc, {r, c}, tree))
+  end
+
+  def load_map(file_path) do
+    input =
+      file_path
+      |> File.read!()
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.to_charlist/1)
+
+    read_lines(input, 0, %{})
+  end
+
+  def debug_scenic(tree_map, y, x) do
+    r = look_right(tree_map, y, x)
+    l = look_left(tree_map, y, x)
+    u = look_up(tree_map, y, x)
+    d = look_down(tree_map, y, x)
+    [height: tree_map[{y, x}] - 48, right: r, left: l, up: u, down: d, score: r * l * u * d]
+  end
+
+  def calc_scenic(tree_map) do
+    tree_map
+    |> Enum.map(fn {{y, x}, _value} ->
+      look_right(tree_map, y, x) *
+        look_left(tree_map, y, x) *
+        look_up(tree_map, y, x) *
+        look_down(tree_map, y, x)
+    end)
+  end
+
+  def look_right(tree_map, y, x) do
+    trees = for i <- (x + 1)..(@cols - 1), tree_map[{y, i}] >= tree_map[{y, x}], do: i
+
+    trees
+    |> Enum.map(fn tree -> abs(x - tree) end)
+    |> Enum.min(fn -> @cols - 1 - x end)
+  end
+
+  def look_left(tree_map, y, x) do
+    trees = for i <- (x - 1)..0//-1, tree_map[{y, i}] >= tree_map[{y, x}], do: i
+
+    trees
+    |> Enum.map(fn tree -> abs(x - tree) end)
+    |> Enum.min(fn -> x end)
+  end
+
+  def look_up(tree_map, y, x) do
+    trees = for i <- (y - 1)..0//-1, tree_map[{i, x}] >= tree_map[{y, x}], do: i
+
+    trees
+    |> Enum.map(fn tree -> abs(y - tree) end)
+    |> Enum.min(fn -> y end)
+  end
+
+  def look_down(tree_map, y, x) do
+    trees = for i <- (y + 1)..(@rows - 1), tree_map[{i, x}] >= tree_map[{y, x}], do: i
+
+    trees
+    |> Enum.map(fn tree -> abs(y - tree) end)
+    |> Enum.min(fn -> @rows - 1 - y end)
   end
 
   def cols(vis_map, tree_rows) do
