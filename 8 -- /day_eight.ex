@@ -1,35 +1,72 @@
 defmodule DayEight do
-  @columns 5
-  @rows 5
-
-  @type trees :: tuple()
+  @rows 99
+  @cols 99
 
   def run(file_path \\ "test_input") do
-    trees =
+    input =
       file_path
       |> File.read!()
-      |> String.replace("\n", "")
-      |> String.to_charlist()
-      |> List.to_tuple()
+      |> String.split("\n", trim: true)
 
-    iter_rows(%{}, trees, 0, @rows)
+    horizontal =
+      input
+      |> Enum.map(&String.to_charlist/1)
+      |> Enum.with_index()
+
+    vertical =
+      input
+      |> Enum.map(&String.graphemes/1)
+      |> Enum.zip()
+      |> Enum.map(fn x -> x |> Tuple.to_list() |> Enum.join() end)
+      |> Enum.map(&String.to_charlist/1)
+      |> Enum.with_index()
+
+    %{}
+    |> rows(horizontal)
+    |> cols(vertical)
   end
 
-  def iter_rows(vis_map, _trees, stop, stop), do: vis_map
-
-  def iter_rows(vis_map, trees, row, stop) do
-    iter_cols(vis_map, trees, row, 0, @columns)
-    |> iter_rows(trees, row + 1, stop)
+  def cols(vis_map, tree_rows) do
+    row_list =
+      tree_rows
+      |> List.foldl(vis_map, fn {trees, idx}, acc_map -> col_look(acc_map, trees, idx) end)
   end
 
-  def iter_cols(vis_map, _trees, _row, stop, stop), do: vis_map
+  def col_look(vis_map, tree_row, col_num) do
+    {_, l_ids, _} = tree_row |> List.foldl({0, [], 0}, &fold_helper/2)
 
-  def iter_cols(vis_map, trees, row, col, stop) do
-    IO.inspect({col, row})
-    get(trees, col, row) |> IO.inspect()
-    iter_cols(vis_map, trees, row, col + 1, stop)
+    r_ids =
+      tree_row
+      |> List.foldr({0, [], 0}, &fold_helper/2)
+      |> elem(1)
+      |> Enum.map(fn x -> @cols - 1 - x end)
+
+    for x <- l_ids ++ r_ids, into: vis_map, do: {{x, col_num}, "t"}
   end
 
-  @spec get(trees(), integer(), integer()) :: integer()
-  def get(trees, x, y), do: elem(trees, y * @columns + x)
+  def rows(vis_map, tree_rows) do
+    row_list =
+      tree_rows
+      |> List.foldl(vis_map, fn {trees, idx}, acc_map -> row_look(acc_map, trees, idx) end)
+  end
+
+  def row_look(vis_map, tree_row, row_num) do
+    {_, l_ids, _} = tree_row |> List.foldl({0, [], 0}, &fold_helper/2)
+
+    r_ids =
+      tree_row
+      |> List.foldr({0, [], 0}, &fold_helper/2)
+      |> elem(1)
+      |> Enum.map(fn x -> @rows - 1 - x end)
+
+    for x <- l_ids ++ r_ids, into: vis_map, do: {{row_num, x}, "t"}
+  end
+
+  def fold_helper(x, {max, vis, idx}) do
+    if x > max do
+      {x, [idx | vis], idx + 1}
+    else
+      {max, vis, idx + 1}
+    end
+  end
 end
