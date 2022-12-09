@@ -14,6 +14,8 @@ defmodule DayNine do
 
     receive do
       x -> x
+    after
+      1_000 -> "Nothing"
     end
   end
 
