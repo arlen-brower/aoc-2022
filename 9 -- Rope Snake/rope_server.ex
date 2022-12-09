@@ -3,12 +3,12 @@ defmodule RopeServer do
 
   @type coords() :: tuple()
   @type rope() :: list(coords())
-  @type rope_state() :: %{head: coords(), rope: rope(), counter: integer()}
+  @type rope_state() :: %{rope: rope(), counter: integer()}
 
   @spec start() :: pid()
   def start() do
     init_rope = for _ii <- 1..@num_knots, do: {0, 0}
-    pid = spawn(fn -> loop(%{head: {0, 0}, rope: init_rope, positions: %{}}) end)
+    pid = spawn(fn -> loop(%{rope: init_rope, positions: %{}}) end)
 
     try do
       pid
@@ -24,7 +24,7 @@ defmodule RopeServer do
 
   @spec loop(rope_state()) :: rope_state()
   def loop(%{} = state) do
-    head = {r, c} = state[:head]
+    {r, c} = hd(state.rope)
 
     new_head =
       receive do
@@ -45,58 +45,35 @@ defmodule RopeServer do
           {r, c}
       end
 
-    {pos, rope} = update_rope(tl(state.rope), head, [new_head])
+    {pos, rope} = update_rope(tl(state.rope), [new_head])
 
     new_state = %{
       state
       | rope: rope,
-        head: new_head,
         positions: Map.put(state.positions, pos, :visited)
     }
 
     loop(new_state)
   end
 
-  @spec pull_rope?(coords(), coords()) :: boolean()
-  def pull_rope?({new_row, new_col}, {old_row, old_col}) do
-    :math.sqrt((new_row - old_row) ** 2 + (new_col - old_col) ** 2) |> floor() > 1
-  end
+  @spec update_position(coords(), coords()) :: coords()
+  def update_position({new_row, new_col}, {cur_row, cur_col}) do
+    {dif_row, dif_col} = {new_row - cur_row, new_col - cur_col}
 
-  @spec update_position(coords(), coords(), coords()) :: coords()
-  def update_position({new_row, new_col} = new_pos, {cur_row, cur_col} = cur_pos, old_pos) do
-    if pull_rope?(new_pos, cur_pos) do
-      case {new_row - cur_row, new_col - cur_col} do
-        {1, 1} -> {cur_row + 1, cur_col + 1}
-        {1, -1} -> {cur_row + 1, cur_col - 1}
-        {-1, -1} -> {cur_row - 1, cur_col - 1}
-        {-1, 1} -> {cur_row - 1, cur_col + 1}
-        {2, 0} -> {cur_row + 1, cur_col}
-        {2, 1} -> {cur_row + 1, cur_col + 1}
-        {1, 2} -> {cur_row + 1, cur_col + 1}
-        {2, 2} -> {cur_row + 1, cur_col + 1}
-        {0, 2} -> {cur_row, cur_col + 1}
-        {-2, 1} -> {cur_row - 1, cur_col + 1}
-        {-1, 2} -> {cur_row - 1, cur_col + 1}
-        {-2, 2} -> {cur_row - 1, cur_col + 1}
-        {-2, 0} -> {cur_row - 1, cur_col}
-        {-2, -1} -> {cur_row - 1, cur_col - 1}
-        {-1, -2} -> {cur_row - 1, cur_col - 1}
-        {-2, -2} -> {cur_row - 1, cur_col - 1}
-        {0, -2} -> {cur_row, cur_col - 1}
-        {2, -1} -> {cur_row + 1, cur_col - 1}
-        {1, -2} -> {cur_row + 1, cur_col - 1}
-        {2, -2} -> {cur_row + 1, cur_col - 1}
-      end
+    if abs(dif_row) > 1 or abs(dif_col) > 1 do
+      dif_row = Integer.digits(dif_row, 2) |> hd()
+      dif_col = Integer.digits(dif_col, 2) |> hd()
+      {cur_row + dif_row, cur_col + dif_col}
     else
-      cur_pos
+      {cur_row, cur_col}
     end
   end
 
-  @spec update_rope(rope(), coords(), rope()) :: rope()
-  def update_rope([], _old_pos, [new_pos | _] = updated_rope),
+  @spec update_rope(rope(), rope()) :: rope()
+  def update_rope([], [new_pos | _] = updated_rope),
     do: {new_pos, Enum.reverse(updated_rope)}
 
-  def update_rope([cur_pos | tail], old_pos, [new_pos | _] = updated_rope) do
-    update_rope(tail, cur_pos, [update_position(new_pos, cur_pos, old_pos) | updated_rope])
+  def update_rope([cur_pos | tail], [new_pos | _] = updated_rope) do
+    update_rope(tail, [update_position(new_pos, cur_pos) | updated_rope])
   end
 end
