@@ -2,10 +2,15 @@ defmodule DayTen do
   @cycles [20, 60, 100, 140, 180, 220]
   @screen_width 40
 
-  @type noop() :: :noop
-  @type addx() :: {:addx, integer()}
-  @type instruction() :: noop() | addx()
+  @type path() :: String.t()
+  @type pixel() :: "#" | " "
+  @type crt() :: list(pixel())
+  @type register() :: integer()
+  @type cycle() :: integer()
+  @type signal_map() :: %{cycle() => register()}
+  @type comm_state() :: %{x: register(), signals: signal_map(), cycles: cycle(), screen: crt()}
 
+  @spec run(path()) :: :ok
   def run(file_path \\ "test_input") do
     start()
 
@@ -34,6 +39,7 @@ defmodule DayTen do
     print(part_two)
   end
 
+  @spec print(crt()) :: :ok
   def print(screen) do
     screen
     |> Enum.reverse()
@@ -56,17 +62,16 @@ defmodule DayTen do
     end
   end
 
+  @spec loop(comm_state()) :: comm_state()
   def loop(%{} = state) do
-    IO.inspect(state.x)
-
     new_state =
       receive do
         "addx " <> x ->
           state
           |> add_cycles()
           |> check_signal()
-          |> add_x(String.to_integer(x))
           |> add_cycles()
+          |> add_x(String.to_integer(x))
 
         "noop" ->
           state
@@ -82,11 +87,13 @@ defmodule DayTen do
     |> loop()
   end
 
+  @spec add_x(comm_state(), integer()) :: comm_state()
   def add_x(%{x: x} = state, add), do: %{state | x: x + add}
-  # def add_cycles(%{cycles: cycle, screen: screen}, x: x)
+
+  @spec add_cycles(comm_state(), integer()) :: comm_state()
   def add_cycles(%{cycles: cycle, x: x, screen: screen} = state, add \\ 1) do
     pixel =
-      if rem(cycle, @screen_width) in (x - 1)..(x + 1) do
+      if rem(cycle - 1, @screen_width) in (x - 1)..(x + 1) do
         "#"
       else
         " "
@@ -95,8 +102,10 @@ defmodule DayTen do
     %{state | screen: [pixel | screen], cycles: cycle + add}
   end
 
+  @spec check_signal(comm_state()) :: comm_state()
   def check_signal(%{cycles: cycle, signals: signals, x: x} = state) when cycle in @cycles,
     do: %{state | signals: Map.put(signals, cycle, cycle * x)}
 
+  @spec check_signal(comm_state()) :: comm_state()
   def check_signal(%{} = state), do: state
 end
