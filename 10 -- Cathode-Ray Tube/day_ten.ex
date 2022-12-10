@@ -3,7 +3,7 @@ defmodule DayTen do
   @screen_width 40
 
   @type path() :: String.t()
-  @type pixel() :: "#" | " "
+  @type pixel() :: String.t()
   @type crt() :: list(pixel())
   @type register() :: integer()
   @type cycle() :: integer()
@@ -94,9 +94,13 @@ defmodule DayTen do
   def add_cycles(%{cycles: cycle, x: x, screen: screen} = state, add \\ 1) do
     pixel =
       if rem(cycle - 1, @screen_width) in (x - 1)..(x + 1) do
-        "#"
+        "\u2592"
       else
-        " "
+        # Make the space extra space-y if it's between the characters :)
+        cond do
+          rem(cycle, 5) == 0 -> "  "
+          true -> " "
+        end
       end
 
     %{state | screen: [pixel | screen], cycles: cycle + add}
