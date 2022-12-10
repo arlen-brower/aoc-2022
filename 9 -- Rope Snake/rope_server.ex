@@ -74,6 +74,9 @@ defmodule RopeServer do
     do: {new_pos, Enum.reverse(updated_rope)}
 
   def update_rope([cur_pos | tail], [new_pos | _] = updated_rope) do
-    update_rope(tail, [update_position(new_pos, cur_pos) | updated_rope])
+    update_rope(
+      tail,
+      [update_position(new_pos, cur_pos) | updated_rope]
+    )
   end
 end
