@@ -1,6 +1,5 @@
 defmodule DayEleven do
   @rounds 10_000
-  @lcm 9_699_690
   @monkey_format "Monkey "
   @items_format "  Starting items: "
   @op_format "  Operation: new = "
@@ -32,8 +31,10 @@ defmodule DayEleven do
     |> String.split("\n\n", trim: true)
     |> Enum.map(&String.split(&1, "\n", trim: true))
     |> Enum.reduce(%{}, fn x, acc -> parse_monkey(x, acc) end)
+    |> calc_lcm()
     |> monkey_business(rounds)
-    |> Enum.map(fn {_ii, monkey} -> monkey.inspected end)
+    |> Map.delete(:lcm)
+    |> Enum.map(fn {_, monkey} -> monkey.inspected end)
     |> Enum.sort(:desc)
     |> Enum.take(2)
     |> Enum.product()
@@ -41,8 +42,12 @@ defmodule DayEleven do
 
   @spec monkey_business(monkey_map(), round()) :: monkey_map()
   def monkey_business(monkey_map, rounds) do
-    num_monkeys = map_size(monkey_map)
-    Enum.reduce(1..rounds, monkey_map, fn _, m_map -> round(m_map, 0, num_monkeys) end)
+    num_monkeys = map_size(monkey_map) - 1
+
+    Enum.reduce(1..rounds, monkey_map, fn ii, m_map ->
+      IO.puts("#{trunc(ii / rounds * 100)}% done")
+      round(m_map, 0, num_monkeys)
+    end)
   end
 
   @spec round(monkey_map(), monkey_id(), integer()) :: monkey_map()
@@ -78,7 +83,7 @@ defmodule DayEleven do
 
   @spec be_relieved(monkey_map(), monkey_id()) :: monkey_map()
   def be_relieved(monkey_map, cur) do
-    Map.update!(monkey_map[cur], :items, fn items -> relief(items) end)
+    Map.update!(monkey_map[cur], :items, fn items -> relief(items, monkey_map.lcm) end)
     |> update_monkeys(cur, monkey_map)
   end
 
@@ -108,9 +113,9 @@ defmodule DayEleven do
     Map.put(monkey_map, to, Map.update!(monkey_map[to], :items, fn items -> [item | items] end))
   end
 
-  @spec relief(items()) :: items()
+  @spec relief(items(), integer()) :: items()
   # &div(&1, 3))
-  def relief(items), do: Enum.map(items, &rem(&1, @lcm))
+  def relief(items, lcm), do: Enum.map(items, &rem(&1, lcm))
 
   @spec parse_monkey(monkey_map(), list(String.t())) :: monkey()
   def parse_monkey(
@@ -131,6 +136,13 @@ defmodule DayEleven do
       parse_id(monkey_num),
       monkey
     )
+  end
+
+  @spec calc_lcm(monkey_map()) :: monkey_map()
+  def calc_lcm(monkey_map) do
+    lcm = Enum.reduce(monkey_map, 1, fn {_, m}, acc -> m.div * acc end)
+
+    Map.put(monkey_map, :lcm, lcm)
   end
 
   @spec parse_false(String.t()) :: monkey_id()
