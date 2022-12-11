@@ -15,7 +15,7 @@ defmodule DayEleven do
   @type monkey_id() :: integer()
   @type monkey() :: %{
           items: items(),
-          op: operation(),
+          ops: operation(),
           div: divisor(),
           true_to: monkey_id(),
           false_to: monkey_id(),
@@ -65,10 +65,32 @@ defmodule DayEleven do
       cur,
       Map.update!(monkey_map[cur], :inspected, &(&1 + Enum.count(monkey_map[cur].items)))
     )
-    |> be_worried(cur)
+    |> old_be_worried(cur)
   end
 
   def be_worried(monkey_map, cur) do
+    ops = monkey_map[cur].ops
+    pid = self()
+
+    item =
+      monkey_map[cur].items
+      |> Enum.map(fn x -> spawn(fn -> async_query(ops, x, pid) end) end)
+      |> Enum.map(fn _ -> get_query() end)
+
+    Map.put(monkey_map, cur, Map.put(monkey_map[cur], :items, item))
+  end
+
+  def get_query() do
+    receive do
+      {:response, x} -> x
+    end
+  end
+
+  def async_query(op, x, caller) do
+    send(caller, {:response, op.(x)})
+  end
+
+  def old_be_worried(monkey_map, cur) do
     monkey_map
     |> Map.put(
       cur,
@@ -103,15 +125,16 @@ defmodule DayEleven do
         end
       end)
 
-    Map.put(new_map, cur, Map.update!(new_map[cur], :items, fn _x -> [] end))
+    Map.put(new_map, cur, Map.put(new_map[cur], :items, []))
   end
 
   def throw_item(monkey_map, item, to) do
-    Map.put(monkey_map, to, Map.update!(monkey_map[to], :items, fn items -> items ++ [item] end))
+    Map.put(monkey_map, to, Map.update!(monkey_map[to], :items, fn items -> [item | items] end))
   end
 
   @spec relief(items()) :: items()
-  def relief(items), do: Enum.map(items, &div(&1, 3))
+  # &div(&1, 3))
+  def relief(items), do: Enum.map(items, &rem(&1, 9_699_690))
 
   @spec parse_monkey(monkey_map(), list(String.t())) :: monkey()
   def parse_monkey(
