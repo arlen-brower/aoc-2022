@@ -23,7 +23,7 @@ defmodule DayEleven do
           false_to: monkey_id(),
           inspected: integer()
         }
-  @type monkey_map() :: %{monkey_id() => monkey()}
+  @type monkey_map() :: %{monkey_id() => monkey(), lcm: integer()}
 
   @spec run(path(), integer()) :: integer()
   def run(file_path \\ "test_input", rounds \\ @rounds) do
@@ -36,7 +36,7 @@ defmodule DayEleven do
     |> Enum.map(fn {_ii, monkey} -> monkey.inspected end)
     |> Enum.sort(:desc)
     |> Enum.take(2)
-    |> Enum.reduce(fn x, acc -> x * acc end)
+    |> Enum.product()
   end
 
   @spec monkey_business(monkey_map(), round()) :: monkey_map()
