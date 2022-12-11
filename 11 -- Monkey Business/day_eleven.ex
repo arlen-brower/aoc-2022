@@ -1,5 +1,6 @@
 defmodule DayEleven do
-  @rounds 20
+  @rounds 10_000
+  @lcm 9_699_690
   @monkey_format "Monkey "
   @items_format "  Starting items: "
   @op_format "  Operation: new = "
@@ -9,6 +10,7 @@ defmodule DayEleven do
 
   @type path() :: String.t()
   @type item() :: integer()
+  @type round() :: integer()
   @type items() :: list(item())
   @type operation() :: function()
   @type divisor() :: integer()
@@ -37,83 +39,56 @@ defmodule DayEleven do
     |> Enum.reduce(fn x, acc -> x * acc end)
   end
 
-  def monkey_business(monkey_map, 0), do: monkey_map
-
+  @spec monkey_business(monkey_map(), round()) :: monkey_map()
   def monkey_business(monkey_map, rounds) do
     num_monkeys = map_size(monkey_map)
-    IO.write("Rounds to go: ")
-    IO.inspect(rounds)
-
-    monkey_map
-    |> round(0, num_monkeys)
-    |> monkey_business(rounds - 1)
+    Enum.reduce(1..rounds, monkey_map, fn _, m_map -> round(m_map, 0, num_monkeys) end)
   end
 
+  @spec round(monkey_map(), monkey_id(), integer()) :: monkey_map()
   def round(monkey_map, num_monkeys, num_monkeys), do: monkey_map
 
   def round(monkey_map, current_monkey, num_monkeys) do
     monkey_map
     |> inspect_items(current_monkey)
+    |> be_worried(current_monkey)
     |> be_relieved(current_monkey)
     |> throw_items(current_monkey)
     |> round(current_monkey + 1, num_monkeys)
   end
 
+  @spec update_monkeys(monkey(), monkey_id(), monkey_map()) :: monkey_map()
+  def update_monkeys(monkey, cur, monkey_map) do
+    Map.put(monkey_map, cur, monkey)
+  end
+
+  @spec inspect_items(monkey_map(), monkey_id()) :: monkey_map()
   def inspect_items(monkey_map, cur) do
-    Map.put(
-      monkey_map,
-      cur,
-      Map.update!(monkey_map[cur], :inspected, &(&1 + Enum.count(monkey_map[cur].items)))
-    )
-    |> old_be_worried(cur)
+    Map.update!(monkey_map[cur], :inspected, &(&1 + Enum.count(monkey_map[cur].items)))
+    |> update_monkeys(cur, monkey_map)
   end
 
+  @spec be_worried(monkey_map(), monkey_id()) :: monkey_map()
   def be_worried(monkey_map, cur) do
-    ops = monkey_map[cur].ops
-    pid = self()
-
-    item =
-      monkey_map[cur].items
-      |> Enum.map(fn x -> spawn(fn -> async_query(ops, x, pid) end) end)
-      |> Enum.map(fn _ -> get_query() end)
-
-    Map.put(monkey_map, cur, Map.put(monkey_map[cur], :items, item))
+    Map.update!(monkey_map[cur], :items, fn items ->
+      Enum.map(items, fn x -> monkey_map[cur].ops.(x) end)
+    end)
+    |> update_monkeys(cur, monkey_map)
   end
 
-  def get_query() do
-    receive do
-      {:response, x} -> x
-    end
-  end
-
-  def async_query(op, x, caller) do
-    send(caller, {:response, op.(x)})
-  end
-
-  def old_be_worried(monkey_map, cur) do
-    monkey_map
-    |> Map.put(
-      cur,
-      Map.update!(monkey_map[cur], :items, fn items ->
-        Enum.map(items, fn x -> monkey_map[cur].ops.(x) end)
-      end)
-    )
-  end
-
+  @spec be_relieved(monkey_map(), monkey_id()) :: monkey_map()
   def be_relieved(monkey_map, cur) do
-    Map.put(
-      monkey_map,
-      cur,
-      Map.update!(monkey_map[cur], :items, fn items -> relief(items) end)
-    )
+    Map.update!(monkey_map[cur], :items, fn items -> relief(items) end)
+    |> update_monkeys(cur, monkey_map)
   end
 
+  @spec throw_items(monkey_map(), monkey_id()) :: monkey_map()
   def throw_items(monkey_map, cur) do
-    current_monkey = monkey_map[cur]
-    items = current_monkey.items
-    div = current_monkey.div
-    true_to = current_monkey.true_to
-    false_to = current_monkey.false_to
+    monkey = monkey_map[cur]
+    items = monkey.items
+    div = monkey.div
+    true_to = monkey.true_to
+    false_to = monkey.false_to
 
     new_map =
       items
@@ -128,13 +103,14 @@ defmodule DayEleven do
     Map.put(new_map, cur, Map.put(new_map[cur], :items, []))
   end
 
+  @spec throw_item(monkey_map(), item(), monkey_id()) :: monkey_map()
   def throw_item(monkey_map, item, to) do
     Map.put(monkey_map, to, Map.update!(monkey_map[to], :items, fn items -> [item | items] end))
   end
 
   @spec relief(items()) :: items()
   # &div(&1, 3))
-  def relief(items), do: Enum.map(items, &rem(&1, 9_699_690))
+  def relief(items), do: Enum.map(items, &rem(&1, @lcm))
 
   @spec parse_monkey(monkey_map(), list(String.t())) :: monkey()
   def parse_monkey(
