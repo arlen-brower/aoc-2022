@@ -9,6 +9,7 @@ defmodule DayTwelve do
   @type row_id() :: integer()
   @type col_id() :: integer()
   @type links() :: list(distance_data())
+  @type processed() :: list(point_data())
   @type point_data() :: tuple()
   @type row_map() :: %{col_id() => point_data()}
   @type height_map() :: %{row_id() => row_map()}
@@ -118,10 +119,10 @@ defmodule DayTwelve do
   # =============================================
   # Dijkstra's calls for a priority queue. Ehhhh... good enough :)
   # =============================================
-  @spec q_push(priority_queue(), elem()) :: priority_queue()
+  @spec q_push(priority_queue(), term()) :: priority_queue()
   def q_push(queue, item), do: [item | queue] |> Enum.sort_by(fn {dist, _pos} -> dist end, :asc)
 
-  @spec q_top(priority_queue()) :: elem()
+  @spec q_top(priority_queue()) :: term()
   def q_top(queue), do: List.last(queue)
 
   @spec q_pop(priority_queue()) :: priority_queue()
@@ -134,7 +135,7 @@ defmodule DayTwelve do
   @doc """
     Helper function to update a distance in the map for given row and column
   """
-  @spec update_distance(height_map(), row_id(), col_id(), distance())
+  @spec update_distance(height_map(), row_id(), col_id(), distance()) :: height_map()
   def update_distance(height_map, r, c, new_dist) do
     {ht, _old} = height_map[r][c]
     Map.put(height_map, r, Map.put(height_map[r], c, {ht, new_dist}))
@@ -144,7 +145,7 @@ defmodule DayTwelve do
   Helper function that will probably break if used out of sequence :/
   Changes elevation data (used in add_start_and_end/1)
   """
-  @spec update_elevation(height_map(), row_id(), col_id(), elevation())
+  @spec update_elevation(height_map(), row_id(), col_id(), elevation()) :: height_map()
   def update_elevation(height_map, r, c, new_elev) do
     Map.put(height_map, r, Map.put(height_map[r], c, new_elev))
   end
