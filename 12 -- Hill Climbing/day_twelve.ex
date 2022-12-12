@@ -120,7 +120,10 @@ defmodule DayTwelve do
   # Dijkstra's calls for a priority queue. Ehhhh... good enough :)
   # =============================================
   @spec q_push(priority_queue(), term()) :: priority_queue()
-  def q_push(queue, item), do: [item | queue] |> Enum.sort_by(fn {dist, _pos} -> dist end, :asc)
+  def q_push(queue, item), do: [item | queue]
+
+  # I guess we could sort it like this if we REALLY wanted, but I think that's probably slower
+  # |> Enum.sort_by(fn {dist, _pos} -> dist end, :desc)
 
   @spec q_top(priority_queue()) :: term()
   def q_top(queue), do: List.last(queue)
