@@ -87,6 +87,10 @@ defmodule DayEleven do
     |> update_monkeys(cur, monkey_map)
   end
 
+  @spec relief(items(), integer()) :: items()
+  # &div(&1, 3))
+  def relief(items, lcm), do: Enum.map(items, &rem(&1, lcm))
+
   @spec throw_items(monkey_map(), monkey_id()) :: monkey_map()
   def throw_items(monkey_map, cur) do
     monkey = monkey_map[cur]
@@ -112,10 +116,6 @@ defmodule DayEleven do
   def throw_item(monkey_map, item, to) do
     Map.put(monkey_map, to, Map.update!(monkey_map[to], :items, fn items -> [item | items] end))
   end
-
-  @spec relief(items(), integer()) :: items()
-  # &div(&1, 3))
-  def relief(items, lcm), do: Enum.map(items, &rem(&1, lcm))
 
   @spec parse_monkey(monkey_map(), list(String.t())) :: monkey()
   def parse_monkey(
