@@ -15,11 +15,10 @@ defmodule DayTwelve do
   @type height_map() :: %{row_id() => row_map()}
 
   @doc """
-  Okay, so even though it looks like both parts are bring printed out
-  it doesn't really work. You need to switch out lines 139 and 141 to
-  use the correct 'linking' function.
+  Part one uses the :digraph module 
+  Part two uses my interpretation of the Dijkstra algorithm
 
-  Also, I hate that linking function I made.
+  This file is not exactly pretty, it's because a little playground of ideas.
   """
   @spec run(path()) :: [part_one: distance(), part_two: distance()]
   def run(file_path \\ "test_input") do
@@ -31,15 +30,13 @@ defmodule DayTwelve do
       |> convert_to_map()
       |> add_start_and_end()
 
-    first_map =
+    part_one =
       map
       |> add_distance()
-      |> dijkstra()
-
-    part_one =
-      with {r, c} <- first_map.end,
-           {_height, distance} <- first_map[r][c],
-           do: distance
+      |> build_graph()
+      |> :digraph.get_short_path(map.start, map.end)
+      |> Enum.count()
+      |> Kernel.-(1)
 
     part_two =
       %{map | start: map.end, end: map.start}
@@ -160,37 +157,30 @@ defmodule DayTwelve do
   Anyway, returns a boolean indicating links between points according to up/down logic
   """
   @spec is_suitable?(height_map(), tuple(), row_id(), col_id()) :: boolean()
-  def is_suitable?(height_map, {r_mod, c_mod}, row_pos, col_pos) do
-    current_height =
+  def is_suitable?(
+        height_map,
+        {r_mod, c_mod},
+        row_pos,
+        col_pos,
+        fun \\ fn dir, cur -> dir != nil and cur - dir <= 1 end
+      ) do
+    cur =
       case height_map[row_pos][col_pos] do
         {x, _dist} -> x
         nil -> nil
       end
 
-    dir_height =
+    dir =
       case height_map[row_pos + r_mod][col_pos + c_mod] do
         {x, _dist} -> x
         nil -> nil
       end
 
-    cur =
-      cond do
-        current_height == ?S -> ?a
-        current_height == ?E -> ?z
-        true -> current_height
-      end
-
-    dir =
-      if dir_height == ?E do
-        ?z
-      else
-        dir_height
-      end
-
+    fun.(dir, cur)
     # For part one to work :)
-    #    dir_height != nil and dir - cur <= 1
+    # dir != nil and dir - cur <= 1
     # Part two:
-    dir_height != nil and cur - dir <= 1
+    # dir_height != nil and cur - dir <= 1
   end
 
   # =============================================
@@ -270,5 +260,40 @@ defmodule DayTwelve do
         Map.put(acc, r, Map.put(acc[r], c, {ht, :inf}))
       end)
     end)
+  end
+
+  @spec get_links(height_map(), tuple()) :: list(point_data())
+  def get_links(height_map, {r, c}) do
+    fun = fn dir, cur -> dir != nil and dir - cur <= 1 end
+
+    for {dr, dc} = dir <- @directions,
+        is_suitable?(height_map, dir, r, c, fun),
+        do: {dr + r, dc + c}
+  end
+
+  @spec build_graph(height_map()) :: :digraph.graph()
+  def build_graph(height_map) do
+    graph = :digraph.new()
+
+    rows = map_size(height_map) - 3
+
+    Enum.each(0..rows, fn r ->
+      cols = map_size(height_map[r]) - 1
+
+      Enum.each(0..cols, fn c ->
+        :digraph.add_vertex(graph, {r, c})
+      end)
+    end)
+
+    Enum.each(0..rows, fn r ->
+      cols = map_size(height_map[r]) - 1
+
+      Enum.each(0..cols, fn c ->
+        links = get_links(height_map, {r, c})
+        Enum.each(links, fn link -> :digraph.add_edge(graph, {r, c}, link) end)
+      end)
+    end)
+
+    graph
   end
 end
