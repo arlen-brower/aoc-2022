@@ -75,13 +75,10 @@ defmodule DayFourteen do
   end
 
   @spec is_stopped?(stone_map(), sand_map(), point()) :: boolean()
-  def is_stopped?(stone_map, sand_map, point) do
-    if Map.has_key?(sand_map, point) do
-      true
-    else
-      Map.has_key?(stone_map, point)
-    end
-  end
+  def is_stopped?(stone_map, sand_map, point),
+    do:
+      Map.has_key?(sand_map, point) or
+        Map.has_key?(stone_map, point)
 
   # =======================================================================
   # Conversion of points to Map
