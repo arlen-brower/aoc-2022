@@ -132,7 +132,6 @@ defmodule DayFourteen do
   @spec parse_point(raw_point()) :: point()
   def parse_point(point) do
     [x, y] = String.split(point, ",")
-    send(self(), y)
     {String.to_integer(x), String.to_integer(y)}
   end
 end
