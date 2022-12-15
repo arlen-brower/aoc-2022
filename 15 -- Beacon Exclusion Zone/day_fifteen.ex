@@ -11,12 +11,86 @@ defmodule DayFifteen do
         parse_line(line, grid_map)
       end)
 
+    p1 = nil
     # Part One
     # {min_x, max_x} = get_x_range(grid.beacons)
     # max_dist = get_max_distance(grid.sensors)
     # range = (min_x - max_dist - 1)..(max_x + max_dist + 1)
-    # check_row(grid, 2_000_000, range)
+    # p1 = check_row(grid, 2_000_000, range)
 
+    p2 = new_calc(grid)
+    [part_one: p1, part_two: p2]
+  end
+
+  # ===================================================================================
+  # The newer way I decided to narrow down candidates
+
+  def new_calc(grid) do
+    lines =
+      grid.sensors
+      |> Enum.map(&new_sensor_to_lines/1)
+      |> List.flatten()
+
+    [false: {x, y}] =
+      lines
+      |> Enum.reduce([], fn outer_line, intersects ->
+        ints =
+          Enum.reduce(lines, [], fn inner_line, acc ->
+            [
+              line_intersection(outer_line, inner_line)
+              | acc
+            ]
+          end)
+
+        ints ++ intersects
+      end)
+      |> Enum.reject(&(&1 == nil))
+      |> Enum.frequencies()
+      |> Enum.sort_by(fn {_, f} -> f end, :desc)
+      |> Enum.take(12)
+      |> Enum.map(fn {point, _} -> {check_point?(grid.sensors, point), point} end)
+      |> Enum.reject(fn {found, _} -> found end)
+
+    x * 4_000_000 + y
+  end
+
+  def new_sensor_to_lines({{x, y}, dist}) do
+    u = %{x: x, y: y - dist - 1}
+    d = %{x: x, y: y + dist + 1}
+    l = %{x: x - dist - 1, y: y}
+    r = %{x: x + dist + 1, y: y}
+
+    [
+      %{p1: u, p2: r},
+      %{p1: r, p2: d},
+      %{p1: d, p2: l},
+      %{p1: l, p2: u}
+    ]
+  end
+
+  def det({a1, a2}, {b1, b2}), do: a1 * b2 - a2 * b1
+
+  def det(%{x: a1, y: a2}, %{x: b1, y: b2}), do: a1 * b2 - a2 * b1
+
+  def line_intersection(same_line, same_line), do: nil
+
+  def line_intersection(line1, line2) do
+    xdiff = {line1.p1.x - line1.p2.x, line2.p1.x - line2.p2.x}
+    ydiff = {line1.p1.y - line1.p2.y, line2.p1.y - line2.p2.y}
+    div = det(xdiff, ydiff)
+
+    unless div == 0 do
+      d = {det(line1.p1, line1.p2), det(line2.p1, line2.p2)}
+      x = det(d, xdiff) |> div(div)
+      y = det(d, ydiff) |> div(div)
+      {x, y}
+    end
+  end
+
+  # =====================================================================================
+  # Old Part Two
+
+  def old_part_two(grid) do
     sensors = grid.sensors
 
     lines = Enum.map(sensors, &sensor_to_lines/1)
@@ -33,6 +107,9 @@ defmodule DayFifteen do
 
     x * @high + y
   end
+
+  # =====================================================================================
+  # Stuff for Part One and Parsing
 
   def sensor_to_lines({{x, y}, dist}) do
     u = {x, y - dist - 1}
@@ -71,7 +148,6 @@ defmodule DayFifteen do
           acc
 
         true ->
-          IO.inspect({x, y})
           acc
       end
     end)
