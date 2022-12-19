@@ -94,11 +94,6 @@ defmodule DayNineteen do
     |> cache_state()
   end
 
-  # Hopefully there's no truly awful blueprints...
-  # def do_round(%{time: time, geode: geode} = game_state)
-  #     when game_state.blueprint.limiter == time and geode == 0,
-  #     do: game_state
-
   def do_round(game_state) do
     game_state
     |> finish_robot(game_state.building)
@@ -154,18 +149,9 @@ defmodule DayNineteen do
 
   @spec depth_first_build(game_state()) :: game_state()
   def depth_first_build(game_state) do
-    # IO.puts("==========================")
-    # IO.puts("Time #{game_state.time}")
-    #
-    # IO.inspect(game_state)
-    # IO.gets("Press enter to continue")
-
     best_result =
       game_state.options
       |> Enum.map(fn robot_type ->
-        #   IO.inspect(robot_type)
-        #  IO.gets("... is being explored. Press enter to continue.")
-
         new_state =
           game_state
           |> build_robot(robot_type)
@@ -348,8 +334,6 @@ defmodule DayNineteen do
   def get_messages(0, messages), do: messages
 
   def get_messages(number, messages) do
-    # IO.puts("Waiting on #{number} blueprints")
-
     new_messages =
       receive do
         game_state ->
