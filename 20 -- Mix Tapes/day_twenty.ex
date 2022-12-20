@@ -1,14 +1,35 @@
 defmodule DayTwenty do
+  @decryption_key 811_589_153
+
   def run(file_path \\ "test_input") do
-    file_path
-    |> File.read!()
-    |> String.split("\n", trim: true)
-    |> Enum.map(&String.to_integer/1)
-    |> mix_file()
-    |> find_coords()
+    encrypted =
+      file_path
+      |> File.read!()
+      |> String.split("\n", trim: true)
+      |> Enum.map(&String.to_integer/1)
+
+    part_one =
+      encrypted
+      |> mix_file()
+      |> find_coords()
+
+    part_two =
+      encrypted
+      |> Enum.map(fn x -> x * @decryption_key end)
+      |> mix_file()
+      |> multi_mix(9)
+      |> find_coords()
+
+    [part_one: part_one, part_two: part_two]
   end
 
-  def find_coords(mixed_list) do
+  def multi_mix({encrypted, positions}, num_mix_times) do
+    Enum.reduce(1..num_mix_times, {encrypted, positions}, fn i, {enc, mix_pos} ->
+      {new_enc, new_positions} = mix_file(enc, mix_pos, [])
+    end)
+  end
+
+  def find_coords({mixed_list, _}) do
     len = length(mixed_list)
 
     out_list = Enum.reduce(mixed_list, "", fn x, acc -> acc <> Integer.to_string(x) <> "\n" end)
@@ -22,6 +43,7 @@ defmodule DayTwenty do
 
     IO.puts("Coordinates are #{first}, #{second}, #{third}")
     IO.puts("Sum: #{first + second + third}")
+    first + second + third
   end
 
   def mix_file(mix_list) do
@@ -31,38 +53,32 @@ defmodule DayTwenty do
       IO.inspect(mix_list)
     end
 
-    # IO.inspect(Enum.at(mix_list, start))
-
     {new_list, new_pos} = mix_it(mix_list, start)
+    updated_pos = update_positions(rest, new_pos, start, length(mix_list))
 
-    # IO.inspect(Enum.map(pos, fn id -> Enum.at(mix_list, id) end))
-    # IO.inspect({new_list, new_pos})
-    mix_file(new_list, update_positions(rest, new_pos, start, length(mix_list)))
+    mix_file(new_list, updated_pos, [new_pos])
   end
 
-  def mix_file(mix_list, []), do: mix_list |> IO.inspect()
+  def mix_file(mix_list, [], mix_pos), do: {mix_list, Enum.reverse(mix_pos)}
 
-  def mix_file(mix_list, [next | rest]) do
-    # IO.puts("#{length(rest)} remaining")
-
+  def mix_file(mix_list, [next | rest], mix_pos) do
     {new_list, new_pos} = mix_it(mix_list, next)
 
     if length(mix_list) < 10 do
       IO.inspect(mix_list)
     end
 
-    # IO.inspect(Enum.at(mix_list, next))
     updated_pos = update_positions(rest, new_pos, next, length(mix_list))
+    new_mix_pos = update_positions(mix_pos, new_pos, next, length(mix_list))
 
-    # debug_left = Enum.map(rest, fn id -> Enum.at(mix_list, id) end)
-    # debug_right = Enum.map(updated_pos, fn id -> Enum.at(new_list, id) end)
-    #
-    # if debug_left != debug_right do
-    #   IO.puts("Error at #{next}")
-    #   raise "oh no"
-    # end
+    cor_pos =
+      if new_pos < 0 do
+        length(mix_list) + new_pos
+      else
+        new_pos
+      end
 
-    mix_file(new_list, updated_pos)
+    mix_file(new_list, updated_pos, [cor_pos | new_mix_pos])
   end
 
   def mix_it(encrypted, cur) do
@@ -74,16 +90,12 @@ defmodule DayTwenty do
           val == 0 or val == len ->
             {encrypted, cur}
 
-          abs(val) < len and val + cur <= 0 ->
-            new_pos = rem(val + cur, len) - 1
-            {List.insert_at(lis, new_pos, val), new_pos}
-
-          abs(val) < len and val + cur >= len ->
-            new_pos = rem(val + cur, len) + 1
+          val + cur <= 0 ->
+            new_pos = rem(val + cur, len - 1) - 1
             {List.insert_at(lis, new_pos, val), new_pos}
 
           true ->
-            new_pos = rem(val + cur, len)
+            new_pos = rem(val + cur, len - 1)
             {List.insert_at(lis, new_pos, val), new_pos}
         end
     end
