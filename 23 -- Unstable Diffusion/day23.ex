@@ -7,6 +7,30 @@ defmodule Day23 do
     |> do_round(0, %{})
   end
 
+  def draw(elves) do
+    IO.puts("---------------------------------------")
+    rows = Enum.map(elves, fn {{r, _c}, _} -> r end)
+    cols = Enum.map(elves, fn {{_r, c}, _} -> c end)
+
+    min_r = Enum.min(rows)
+    max_r = Enum.max(rows)
+
+    min_c = Enum.min(cols)
+    max_c = Enum.max(cols)
+
+    Enum.each(min_r..max_r, fn r ->
+      Enum.each(min_c..max_c, fn c ->
+        if Map.has_key?(elves, {r, c}) do
+          IO.write("#")
+        else
+          IO.write(" ")
+        end
+      end)
+
+      IO.write("\n")
+    end)
+  end
+
   def calc_rectangle(elves) do
     rows = Enum.map(elves, fn {{r, _c}, _} -> r end)
     cols = Enum.map(elves, fn {{_r, c}, _} -> c end)
@@ -22,7 +46,9 @@ defmodule Day23 do
     l * w - map_size(elves)
   end
 
-  def do_round(elves, round, elves), do: round
+  def do_round(elves, round, elves) do
+    round
+  end
 
   def do_round(elves, round, last_elves) do
     if round == 10 do
